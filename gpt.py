@@ -11,7 +11,7 @@ class ChatGptService:
     async def send_message_list(self) -> str:
         print("надсилання запиту")
         completion = await self.client.chat.completions.create(
-            model="gpt-5-mini",  # gpt-4o,  gpt-4-turbo,    gpt-3.5-turbo,  GPT-4o mini
+            model="gpt-4o-mini",  # gpt-4o,  gpt-4-turbo,    gpt-3.5-turbo,  GPT-4o mini
             messages=self.message_list,
             max_completion_tokens=3000,
             temperature=1
