@@ -96,5 +96,20 @@ async def default_callback_handler(update: Update,
     await send_html(update, context, f'You have pressed button with {query} callback')
 
 
+async def send_text_with_buttons(update, context, text, buttons):
+    # Створюємо список кнопок на основі словника
+    keyboard = []
+    for key, value in buttons.items():
+        button = InlineKeyboardButton(text=value, callback_data=key)
+        keyboard.append([button])  # Кожна кнопка з нового рядка
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    # Відправляємо повідомлення (враховуємо, чи це звичайне повідомлення чи натискання кнопки)
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text=text, reply_markup=reply_markup)
+    else:
+        await update.message.reply_text(text=text, reply_markup=reply_markup)
+
 class Dialog:
     pass
