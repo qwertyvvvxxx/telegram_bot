@@ -1,12 +1,15 @@
 from openai import AsyncOpenAI
-import httpx
+from credentials import config
 
 
 class ChatGptService:
-    def __init__(self, token):
-        token = "sk-proj-" + token[:3:-1] if token.startswith('gpt:') else token
-        self.client = AsyncOpenAI(api_key=token)
+    def __init__(self):
+        self.client = AsyncOpenAI(api_key=config.GPT_API_KEY)
         self.message_list = []
+
+    async def add_message(self, message_text: str) -> str:
+        self.message_list.append({"role": "user", "content": message_text})
+        return await self.send_message_list()
 
     async def send_message_list(self) -> str:
         print("надсилання запиту")
@@ -23,10 +26,6 @@ class ChatGptService:
     def set_prompt(self, prompt_text: str) -> None:
         self.message_list.clear()
         self.message_list.append({"role": "system", "content": prompt_text})
-
-    async def add_message(self, message_text: str) -> str:
-        self.message_list.append({"role": "user", "content": message_text})
-        return await self.send_message_list()
 
     async def send_question(self, prompt_text: str, message_text: str) -> str:
         self.message_list.clear()

@@ -2,7 +2,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, \
     BotCommand, MenuButtonCommands, BotCommandScopeChat, MenuButtonDefault
 from telegram import Update
 from telegram.constants import ParseMode
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler
 
 
 # конвертує об'єкт user в рядок
@@ -113,3 +113,8 @@ async def send_text_with_buttons(update, context, text, buttons):
 
 class Dialog:
     pass
+
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await send_text(update, context, "Діалог завершено. Повертайтеся, коли захочете поспілкуватися!")
+    return ConversationHandler.END
