@@ -3,19 +3,19 @@ import re
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, CallbackQueryHandler, ContextTypes, CommandHandler, ConversationHandler, MessageHandler, filters
 from credentials import config
-from gpt import ChatGptService
+from gemini import ChatGeminiService
 from util import (load_message, send_text, send_image, show_main_menu, default_callback_handler, load_prompt,
                   send_text_with_buttons, cancel)
 import asyncio
 
-GPT, TALK_SELECT, TALK_DIALOG = range(3)
+GEMINI, TALK_SELECT, TALK_DIALOG = range(3)
 
 
 
 #----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-# клава (кнопка) для чату щоб виключити режим GPT
+# клава (кнопка) для чату щоб виключити режим Gemini
 
 finish_button = ReplyKeyboardMarkup([[KeyboardButton("Закінчити")]], resize_keyboard=True)
 
@@ -43,7 +43,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_main_menu(update, context, {
         'start': 'Головне меню',
         'random': 'Дізнатися випадковий цікавий факт 🧠',
-        'gpt': 'Задати питання чату GPT 🤖',
+        'gemini': 'Задати питання чату Gemini 🤖',
         'talk': 'Поговорити з відомою особистістю 👤',
         'quiz': 'Взяти участь у квізі ❓'
         # Додати команду в меню можна так:
@@ -51,10 +51,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     })
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-def get_gpt_service(context: ContextTypes.DEFAULT_TYPE):
-    if 'gpt_service' not in context.user_data:
-        context.user_data['gpt_service'] = ChatGptService()
-    return context.user_data['gpt_service']
+def get_gemini_service(context: ContextTypes.DEFAULT_TYPE):
+    if 'gemini_service' not in context.user_data:
+        context.user_data['gemini_service'] = ChatGeminiService()
+    return context.user_data['gemini_service']
 
 
 async def random(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -74,9 +74,9 @@ async def random(update: Update, context: ContextTypes.DEFAULT_TYPE):
     prompt = load_prompt('random')
     status_message = await target_message.reply_text(load_message('random'))
 
-    gpt = get_gpt_service(context)
-    gpt.set_prompt(prompt)
-    response_text = await gpt.send_message_list()
+    gemini = get_gemini_service(context)
+    gemini.set_prompt(prompt)
+    response_text = await gemini.send_message_list()
 
     await status_message.delete()
     await target_message.reply_text(response_text, reply_markup=random_buttons)
@@ -93,31 +93,31 @@ async def random_button_handler(update: Update, context: ContextTypes.DEFAULT_TY
 
 #----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-async def gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    gpt = get_gpt_service(context)
-    gpt.set_prompt(load_prompt('gpt'))
-    await send_image(update, context, 'gpt')
-    await update.message.reply_text(load_message('gpt'), reply_markup=finish_button)
+async def gemini(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    gemini = get_gemini_service(context)
+    gemini.set_prompt(load_prompt('gemini'))
+    await send_image(update, context, 'gemini')
+    await update.message.reply_text(load_message('gemini'), reply_markup=finish_button)
 
-    return GPT
+    return GEMINI
 
-async def gpt_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def gemini_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
 
     if user_text == "Закінчити":
-        if 'gpt_service' in context.user_data:
-            context.user_data['gpt_service'].message_list.clear()
+        if 'gemini_service' in context.user_data:
+            context.user_data['gemini_service'].message_list.clear()
 
-        await update.message.reply_text("Режим ChatGPT вимкнено", reply_markup=ReplyKeyboardRemove())
+        await update.message.reply_text("Режим Gemini вимкнено", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
 
-    status_message = await update.message.reply_text("ChatGPT готує відповідь...")
+    status_message = await update.message.reply_text("Gemini готує відповідь...")
 
-    gpt_service = get_gpt_service(context)
-    response_text = await gpt_service.add_message(user_text)
+    gemini_service = get_gemini_service(context)
+    response_text = await gemini_service.add_message(user_text)
 
     await status_message.edit_text(response_text)
-    return GPT
+    return GEMINI
 
 
 
@@ -189,10 +189,10 @@ async def quiz_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         theme = data.split("_")[1]
         context.user_data['quiz_theme'] = theme
 
-        await query.edit_message_text("⏳ ChatGPT готує питання...")
+        await query.edit_message_text("⏳ Gemini готує питання...")
 
-        gpt = get_gpt_service(context)
-        gpt.message_list = []
+        gemini = get_gemini_service(context)
+        gemini.message_list = []
 
         prompt = (f"Згенеруй ОДНЕ питання для квізу на тему: {theme}.\n"
                   f"Формат відповіді (РІВНО 6 РЯДКІВ):\n"
@@ -203,7 +203,7 @@ async def quiz_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
                   f"5. Варіант 4\n"
                   f"6. Правильна відповідь: [лише цифра 1-4]")
 
-        response = await gpt.send_question("Ти — технічний API. Пиши суворо 6 рядків без вступу.", prompt)
+        response = await gemini.send_question("Ти — технічний API. Пиши суворо 6 рядків без вступу.", prompt)
 
         lines = [l.strip() for l in response.strip().split('\n') if l.strip()]
 
@@ -269,8 +269,8 @@ async def talk_button(update, context):
     )
     promt = load_prompt(query)
 
-    gpt_service = get_gpt_service(context)
-    gpt_service.set_prompt(promt)
+    gemini_service = get_gemini_service(context)
+    gemini_service.set_prompt(promt)
 
     return TALK_DIALOG
 
@@ -282,8 +282,8 @@ async def talk_dialog(update, context):
     text = update.message.text
 
     if text == "Закінчити":
-        gpt_service = get_gpt_service(context)
-        gpt_service.message_list.clear()
+        gemini_service = get_gemini_service(context)
+        gemini_service.message_list.clear()
 
         await update.message.reply_text("Діалог завершено.", reply_markup=ReplyKeyboardRemove())
 
@@ -291,8 +291,8 @@ async def talk_dialog(update, context):
 
     my_message = await send_text(update, context, "набирає повідомлення....")
 
-    gpt_service = get_gpt_service(context)
-    answer = await gpt_service.add_message(text)
+    gemini_service = get_gemini_service(context)
+    answer = await gemini_service.add_message(text)
 
     await my_message.edit_text(answer)
 
@@ -316,25 +316,23 @@ if __name__ == '__main__':
             TALK_DIALOG: [MessageHandler(filters.TEXT & ~filters.COMMAND, talk_dialog)]
         },
         fallbacks=[MessageHandler(filters.Regex("^Закінчити$"), cancel)],
-        per_message=False
     )
 
-    #  Conversation GPT
-    gpt_handler = ConversationHandler(
-        entry_points=[CommandHandler('gpt', gpt)],
+    #  Conversation Gemini
+    gemini_handler = ConversationHandler(
+        entry_points=[CommandHandler('gemini', gemini)],
         states={
-            GPT: [MessageHandler(filters.TEXT & ~filters.COMMAND, gpt_dialog)]
+            GEMINI: [MessageHandler(filters.TEXT & ~filters.COMMAND, gemini_dialog)]
         },
         fallbacks=[
             CommandHandler('cancel', cancel),
             MessageHandler(filters.Regex("Закінчити"), cancel)
         ],
-        per_message=False
     )
 
     # РЕЄСТРАЦІЯ
     app.add_handler(talk_conversation_handler)
-    app.add_handler(gpt_handler)
+    app.add_handler(gemini_handler)
 
     # Глобальні команди
     app.add_handler(CommandHandler('start', start))
